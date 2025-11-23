@@ -1,0 +1,395 @@
+<div class="nlabs-data-grid" [class.loading]="loading">
+  <!-- Loading Overlay -->
+  <div class="grid-loading-overlay" *ngIf="loading">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Grid Container -->
+  <div class="grid-container">
+    <!-- Toolbar with Global Search, Export, Theme Selector -->
+    <div class="grid-toolbar" *ngIf="config?.showHeader !== false">
+      <div class="toolbar-left">
+        <!-- Global Search -->
+        <div class="global-search" *ngIf="showGlobalSearch()">
+          <input 
+            type="text" 
+            class="global-search-input"
+            placeholder="🔍 Search in all columns..."
+            [(ngModel)]="globalSearchTerm"
+            (input)="onGlobalSearch($any($event.target).value)"
+          />
+        </div>
+      </div>
+
+      <div class="toolbar-center">
+        <!-- Add Button -->
+        <button 
+          *ngIf="showAddButton()" 
+          class="toolbar-btn btn-add"
+          (click)="onAddButtonClick()"
+          title="Add new record"
+        >
+          ➕ {{ addButtonText() }}
+        </button>
+
+        <!-- Export Buttons -->
+        <div class="export-buttons" *ngIf="showExport()">
+          <button 
+            class="toolbar-btn btn-export"
+            (click)="exportToExcel()"
+            title="Export to Excel/CSV"
+          >
+            📊 Excel
+          </button>
+          <button 
+            class="toolbar-btn btn-export"
+            (click)="exportToPDF()"
+            title="Export to PDF / Print"
+          >
+            📄 PDF
+          </button>
+        </div>
+        
+        <!-- Caption Command Template -->
+        <ng-container *ngIf="captionCommandTemplate()">
+          <ng-container *ngTemplateOutlet="captionCommandTemplate()!"></ng-container>
+        </ng-container>
+      </div>
+
+      <div class="toolbar-right">
+        <!-- Column Chooser -->
+        <div class="column-chooser" *ngIf="showColumnChooser() && (config?.reorderable || config?.resizable)">
+          <button class="column-chooser-btn btn-icon-only" (click)="showColumnChooserModal = !showColumnChooserModal" title="Show/Hide Columns">
+            ☰
+          </button>
+          
+          <!-- Backdrop -->
+          <div class="column-chooser-backdrop" 
+               *ngIf="showColumnChooserModal" 
+               (click)="showColumnChooserModal = false">
+          </div>
+          
+          <div class="column-chooser-panel" *ngIf="showColumnChooserModal">
+            <div class="column-chooser-header">
+              <span>Show/Hide Columns</span>
+              <button (click)="showColumnChooserModal = false">✕</button>
+            </div>
+            <div class="column-list">
+              <div *ngFor="let column of displayedColumns" class="column-item">
+                <label>
+                  <input 
+                    type="checkbox" 
+                    [checked]="column.visible !== false"
+                    (change)="toggleColumnVisibility(column)"
+                  />
+                  <span>{{ column.header }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <theme-selector [showSelector]="showThemeSelector()" />
+        
+        <!-- Refresh Button -->
+        <button 
+          class="toolbar-btn btn-refresh btn-icon-only"
+          (click)="onRefreshClick()"
+          title="Refresh data"
+        >
+          🔄
+        </button>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="grid-header" #gridHeader *ngIf="config?.showHeader !== false">
+      <div class="grid-row header-row">
+        <div
+          *ngFor="let column of getVisibleColumns(); let i = index"
+          class="grid-cell header-cell"
+          [style.width]="column.width || 'auto'"
+          [style.min-width]="column.minWidth || '50px'"
+          [style.max-width]="column.maxWidth || 'none'"
+          [class.sortable]="column.sortable"
+          [class.dragging]="draggedColumn === column"
+          [class.drop-target]="dropTargetIndex === i"
+          [attr.draggable]="config?.reorderable"
+          (dragstart)="onDragStart($event, column, i)"
+          (dragover)="onColumnDragOver($event, i)"
+          (drop)="onColumnDrop($event, i)"
+          (dragend)="onColumnDragEnd()"
+          (click)="column.sortable && onSort(column)"
+        >
+          <div class="header-content">
+            <span class="header-title">{{ column.header }}</span>
+            <div class="header-actions">
+              <span class="sort-icon" *ngIf="column.sortable">
+                {{ getSortIcon(column) }}
+              </span>
+              <button 
+                *ngIf="column.filterable !== false && config?.filterable"
+                class="filter-btn" 
+                [class.active]="isFilterActive(column)"
+                (click)="openFilterModal(column, $event)"
+                title="Filter">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <span 
+            *ngIf="column.resizable !== false && config?.resizable"
+            class="resize-handle"
+            (mousedown)="onResizeStart($event, column)"
+          ></span>
+        </div>
+      </div>
+
+      <!-- Filter Row -->
+      <div class="grid-row filter-row" *ngIf="config?.filterable">
+        <div
+          *ngFor="let column of getVisibleColumns()"
+          class="grid-cell filter-cell"
+          [style.width]="column.width || 'auto'"
+          [style.min-width]="column.minWidth || '50px'"
+          [style.max-width]="column.maxWidth || 'none'"
+        >
+          <input
+            *ngIf="column.filterable !== false"
+            type="text"
+            class="filter-input"
+            [placeholder]="'Search ' + column.header"
+            [value]="getFilterValue(column)"
+            (input)="onFilter(column, $any($event.target).value)"
+            (click)="$event.stopPropagation()"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="grid-body" #gridBody>
+      <div
+        *ngFor="let row of gridData"
+        class="grid-row data-row"
+        [class.selected]="isRowSelected(row)"
+        [class.selectable]="config?.selectable"
+        (click)="onRowSelect(row, $event)"
+        [style.height]="config?.rowHeight"
+      >
+        <div
+          *ngFor="let column of getVisibleColumns()"
+          class="grid-cell data-cell"
+          [style.width]="column.width || 'auto'"
+          [style.min-width]="column.minWidth || '50px'"
+          [style.max-width]="column.maxWidth || 'none'"
+          [attr.data-type]="column.type"
+        >
+          <ng-container *ngIf="!column.cellTemplate">
+            {{ getCellValue(row, column) }}
+          </ng-container>
+          <ng-container *ngIf="column.cellTemplate">
+            <ng-container
+              *ngTemplateOutlet="column.cellTemplate; context: { $implicit: row, column: column }"
+            ></ng-container>
+          </ng-container>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div class="grid-empty" *ngIf="gridData.length === 0 && !loading">
+        <p>{{ config?.emptyMessage || 'No records found' }}</p>
+      </div>
+    </div>
+
+    <!-- Footer / Pagination -->
+    <div class="grid-footer" *ngIf="config?.showFooter !== false">
+      <div class="pagination-info">
+        <span>
+          Showing {{ pagination.page * pagination.pageSize + 1 }} to
+          {{ Math.min((pagination.page + 1) * pagination.pageSize, pagination.totalRecords) }}
+          of {{ pagination.totalRecords }} entries
+        </span>
+      </div>
+
+      <div class="pagination-controls">
+        <!-- Page Size Selector -->
+        <div class="page-size-selector" *ngIf="config?.pageSizeOptions as pageSizeOptions">
+          <label>Rows per page:</label>
+          <select
+            [value]="pagination.pageSize"
+            (change)="onPageSizeChange(+$any($event.target).value)"
+            class="page-size-select"
+          >
+            <option *ngFor="let size of pageSizeOptions" [value]="size">
+              {{ size }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Page Navigation -->
+        <div class="page-navigation">
+          <button
+            class="page-btn"
+            [disabled]="pagination.page === 0"
+            (click)="onPageChange(0)"
+            title="First page"
+          >
+            ⟪
+          </button>
+          <button
+            class="page-btn"
+            [disabled]="pagination.page === 0"
+            (click)="onPageChange(pagination.page - 1)"
+            title="Previous page"
+          >
+            ‹
+          </button>
+
+          <ng-container *ngFor="let pageNum of getPageNumbers()">
+            <button
+              *ngIf="pageNum !== -1"
+              class="page-btn"
+              [class.active]="pageNum === pagination.page"
+              (click)="onPageChange(pageNum)"
+            >
+              {{ pageNum + 1 }}
+            </button>
+            <span *ngIf="pageNum === -1" class="page-ellipsis">...</span>
+          </ng-container>
+
+          <button
+            class="page-btn"
+            [disabled]="pagination.page >= pagination.totalPages - 1"
+            (click)="onPageChange(pagination.page + 1)"
+            title="Next page"
+          >
+            ›
+          </button>
+          <button
+            class="page-btn"
+            [disabled]="pagination.page >= pagination.totalPages - 1"
+            (click)="onPageChange(pagination.totalPages - 1)"
+            title="Last page"
+          >
+            ⟫
+          </button>
+        </div>
+      </div>
+
+      <!-- Custom Footer Template -->
+      <div class="grid-custom-footer" *ngIf="footerTemplate()">
+        <ng-container *ngTemplateOutlet="footerTemplate()!; context: { $implicit: gridData, total: pagination.totalRecords }"></ng-container>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter Modal -->
+<div class="filter-modal-overlay" *ngIf="showFilterModal" (click)="closeFilterModal()">
+  <div class="filter-modal-content" (click)="$event.stopPropagation()">
+    <div class="filter-modal-header">
+      <h3>Filter: {{ currentFilterColumn?.header }}</h3>
+      <button class="close-btn" (click)="closeFilterModal()">×</button>
+    </div>
+    
+    <div class="filter-modal-body">
+      <div class="filter-form">
+        <!-- Operator Selection - STRING -->
+        <div class="form-group" *ngIf="!currentFilterColumn?.filterType || currentFilterColumn?.filterType === 'text'">
+          <label>Operator:</label>
+          <select [(ngModel)]="currentFilterOperator" class="form-control">
+            <option value="contains">Contains (İçerir)</option>
+            <option value="notContains">Not Contains (İçermez)</option>
+            <option value="equals">Equals (Eşittir)</option>
+            <option value="notEquals">Not Equals (Eşit Değil)</option>
+            <option value="startsWith">Starts With (İle Başlar)</option>
+            <option value="endsWith">Ends With (İle Biter)</option>
+            <option value="isEmpty">Is Empty (Boş)</option>
+            <option value="isNotEmpty">Is Not Empty (Boş Değil)</option>
+          </select>
+        </div>
+
+        <!-- Operator Selection - NUMBER -->
+        <div class="form-group" *ngIf="currentFilterColumn?.filterType === 'number'">
+          <label>Operator:</label>
+          <select [(ngModel)]="currentFilterOperator" class="form-control">
+            <option value="equals">Equals (Eşittir)</option>
+            <option value="notEquals">Not Equals (Eşit Değil)</option>
+            <option value="lt">Less Than (Küçüktür)</option>
+            <option value="lte">Less Than or Equal (Küçük Eşit)</option>
+            <option value="gt">Greater Than (Büyüktür)</option>
+            <option value="gte">Greater Than or Equal (Büyük Eşit)</option>
+            <option value="isEmpty">Is Empty (Boş)</option>
+            <option value="isNotEmpty">Is Not Empty (Boş Değil)</option>
+          </select>
+        </div>
+
+        <!-- Operator Selection - DATE -->
+        <div class="form-group" *ngIf="currentFilterColumn?.filterType === 'date'">
+          <label>Operator:</label>
+          <select [(ngModel)]="currentFilterOperator" class="form-control">
+            <option value="equals">On Date (Tarihte)</option>
+            <option value="notEquals">Not On Date (Tarihte Değil)</option>
+            <option value="lt">Before (Önce)</option>
+            <option value="lte">On or Before (Veya Önce)</option>
+            <option value="gt">After (Sonra)</option>
+            <option value="gte">On or After (Veya Sonra)</option>
+            <option value="isEmpty">Is Empty (Boş)</option>
+            <option value="isNotEmpty">Is Not Empty (Boş Değil)</option>
+          </select>
+        </div>
+        
+        <!-- Value Input - TEXT -->
+        <div class="form-group" *ngIf="(!currentFilterColumn?.filterType || currentFilterColumn?.filterType === 'text') && currentFilterOperator !== 'isEmpty' && currentFilterOperator !== 'isNotEmpty'">
+          <label>Value:</label>
+          <input 
+            type="text" 
+            [(ngModel)]="filterValue" 
+            class="form-control"
+            placeholder="Enter text..."
+            (keyup.enter)="applyFilterModal()"
+          />
+        </div>
+
+        <!-- Value Input - NUMBER -->
+        <div class="form-group" *ngIf="currentFilterColumn?.filterType === 'number' && currentFilterOperator !== 'isEmpty' && currentFilterOperator !== 'isNotEmpty'">
+          <label>Value:</label>
+          <input 
+            type="number" 
+            [(ngModel)]="filterValue" 
+            class="form-control"
+            placeholder="Enter number..."
+            (keyup.enter)="applyFilterModal()"
+          />
+        </div>
+
+        <!-- Value Input - DATE -->
+        <div class="form-group" *ngIf="currentFilterColumn?.filterType === 'date' && currentFilterOperator !== 'isEmpty' && currentFilterOperator !== 'isNotEmpty'">
+          <label>Value:</label>
+          <input 
+            type="date" 
+            [(ngModel)]="filterValue" 
+            class="form-control"
+            (keyup.enter)="applyFilterModal()"
+          />
+        </div>
+        
+        <div class="form-group" *ngIf="currentFilterOperator === 'isEmpty' || currentFilterOperator === 'isNotEmpty'">
+          <p style="padding: 12px; background: var(--grid-bg-secondary); border-radius: var(--grid-radius-sm); color: var(--grid-text-secondary); font-size: 0.875rem;">
+            ℹ️ Bu operatör için değer girmeye gerek yok.
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="filter-modal-footer">
+      <button class="btn-cancel" (click)="closeFilterModal()">Cancel</button>
+      <button class="btn-clear" (click)="clearFilterModal()">Clear Filter</button>
+      <button class="btn-apply" (click)="applyFilterModal()">Apply</button>
+    </div>
+  </div>
+</div>
+

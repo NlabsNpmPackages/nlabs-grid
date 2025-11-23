@@ -1,59 +1,85 @@
+
 # NlabsGrid
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.0.0.
+NlabsGrid is a customizable Angular data grid library designed for enterprise applications. It provides flexible data adapters, advanced templating, and theming support.
 
-## Development server
+## Features
 
-To start a local development server, run:
+- Highly customizable data grid component
+- Support for REST, OData, and mock data adapters
+- Column, header, footer, and cell templating
+- Built-in theme selector and theme service
+- Easy integration with Angular projects
 
-```bash
-ng serve
-```
+## Installation
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+Install the library using npm:
 
 ```bash
-ng generate component component-name
+npm install nlabs-grid
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Usage
+
+Import the `NlabsGrid` module and use the `<nlabs-data-grid>` component in your Angular application:
+
+```typescript
+import { DataGridComponent } from 'nlabs-grid';
+```
+
+Example usage in a template:
+
+```html
+<nlabs-data-grid [config]="gridConfig" [adapter]="dataAdapter"></nlabs-data-grid>
+```
+
+## Building the Library
+
+To build the library, run:
 
 ```bash
-ng generate --help
+ng build nlabs-grid
 ```
 
-## Building
+The build artifacts will be stored in the `dist/nlabs-grid/` directory.
 
-To build the project run:
+## Publishing the Library
+
+To publish the library to npm:
 
 ```bash
-ng build
+cd dist/nlabs-grid
+npm publish
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+## Running Unit Tests
 
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+To execute unit tests:
 
 ```bash
-ng test
+ng test nlabs-grid
 ```
 
-## Running end-to-end tests
+## API Reference
 
-For end-to-end (e2e) testing, run:
+See the [public-api.ts](./projects/nlabs-grid/src/public-api.ts) file for all exported modules, components, directives, and services.
+
+## Example Components
+
+- `DataGridComponent`: Main grid component
+- `GridColumnComponent`: Column definition
+- `ThemeSelectorComponent`: Theme switcher
+
+## Development
+
+Clone the repository and install dependencies:
 
 ```bash
-ng e2e
+git clone https://github.com/NlabsNpmPackages/nlabs-grid.git
+cd nlabs-grid
+npm install
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+## License
 
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+MIT

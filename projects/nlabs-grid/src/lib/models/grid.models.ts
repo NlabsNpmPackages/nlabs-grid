@@ -34,6 +34,11 @@ export interface GridConfig {
   loading?: boolean;
   emptyMessage?: string;
   rowHeight?: string;
+  showActions?: boolean;
+  actionsHeader?: string;
+  actionsWidth?: string;
+  showCheckboxColumn?: boolean;
+  checkboxColumnWidth?: string;
 }
 
 export interface GridState {

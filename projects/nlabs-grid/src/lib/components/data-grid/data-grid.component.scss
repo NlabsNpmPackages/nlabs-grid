@@ -1057,3 +1057,212 @@
     background: var(--grid-text-tertiary);
   }
 }
+
+// Checkbox Column Styles - Modern & Corporate Design
+.checkbox-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px !important;
+  flex: 0 0 auto !important;
+
+  .grid-checkbox {
+    position: relative;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--grid-border-dark);
+    border-radius: var(--grid-radius-sm);
+    background: var(--grid-bg-primary);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    outline: none;
+
+    // Hover effect
+    &:hover {
+      border-color: var(--grid-primary-color);
+      background: var(--grid-bg-hover);
+      transform: scale(1.05);
+      box-shadow: 0 0 0 4px rgba(64, 150, 255, 0.08);
+    }
+
+    // Focus effect
+    &:focus,
+    &:focus-visible {
+      border-color: var(--grid-primary-color);
+      box-shadow: 0 0 0 4px rgba(64, 150, 255, 0.15);
+    }
+
+    // Checked state
+    &:checked {
+      background: var(--grid-primary-color);
+      border-color: var(--grid-primary-color);
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%) rotate(45deg) scale(1);
+        width: 5px;
+        height: 10px;
+        border: solid white;
+        border-width: 0 2px 2px 0;
+        opacity: 1;
+      }
+
+      &:hover {
+        background: var(--grid-primary-hover, #1677ff);
+        border-color: var(--grid-primary-hover, #1677ff);
+      }
+    }
+
+    // Indeterminate state (for select all)
+    &:indeterminate {
+      background: var(--grid-primary-color);
+      border-color: var(--grid-primary-color);
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 10px;
+        height: 2px;
+        background: white;
+        border-radius: 1px;
+      }
+    }
+
+    // Disabled state
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+      background: var(--grid-bg-secondary);
+      border-color: var(--grid-border-light);
+
+      &:hover {
+        transform: none;
+        box-shadow: none;
+      }
+    }
+
+    // Animation for checkmark
+    &::before {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      opacity: 0;
+    }
+  }
+
+  // Header checkbox - slightly larger
+  .header-checkbox {
+    width: 20px;
+    height: 20px;
+    border-width: 2px;
+
+    &:checked::before {
+      width: 5px;
+      height: 10px;
+      border-width: 0 2.5px 2.5px 0;
+    }
+  }
+
+  // Row checkbox
+  .row-checkbox {
+    width: 18px;
+    height: 18px;
+
+    &:checked::before {
+      width: 4px;
+      height: 9px;
+      border-width: 0 2px 2px 0;
+    }
+  }
+}
+
+// Actions Column Styles
+.actions-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px !important;
+  flex: 0 0 auto !important;
+
+  button {
+    padding: 6px 12px;
+    border: 1px solid var(--grid-border-dark);
+    background: var(--grid-bg-primary);
+    color: var(--grid-text-primary);
+    border-radius: var(--grid-radius-sm);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: var(--grid-transition-fast);
+    white-space: nowrap;
+
+    &:hover {
+      background: var(--grid-bg-hover);
+      border-color: var(--grid-primary-color);
+      color: var(--grid-primary-color);
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    &:focus {
+      outline: 2px solid var(--grid-primary-color);
+      outline-offset: 2px;
+    }
+
+    &.btn-edit {
+      color: var(--grid-primary-color);
+      border-color: var(--grid-primary-color);
+
+      &:hover {
+        background: var(--grid-primary-color);
+        color: white;
+      }
+    }
+
+    &.btn-delete {
+      color: #ef4444;
+      border-color: #ef4444;
+
+      &:hover {
+        background: #ef4444;
+        color: white;
+      }
+    }
+
+    &.btn-view {
+      color: #10b981;
+      border-color: #10b981;
+
+      &:hover {
+        background: #10b981;
+        color: white;
+      }
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+  }
+
+  // Icon buttons
+  .icon-btn {
+    padding: 6px;
+    min-width: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}

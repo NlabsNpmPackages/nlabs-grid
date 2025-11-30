@@ -46,6 +46,7 @@ import { GridFooterTemplateDirective } from '../../directives/grid-footer-templa
   selector: 'nlabs-data-grid',
   standalone: true,
   imports: [CommonModule, FormsModule, GridColumnComponent, ThemeSelectorComponent],
+  providers: [GridDataService, ThemeService],
   templateUrl: 'data-grid.component.html',
   styleUrls: ['./data-grid.component.scss']
 })
@@ -82,11 +83,15 @@ export class DataGridComponent<T = any> implements OnInit, OnChanges, AfterConte
 
   // Template references from content projection
   @ContentChildren(GridColumnComponent) columnComponents!: QueryList<GridColumnComponent>;
-  
+  @ContentChildren(GridColumnCommandTemplateDirective) columnCommandTemplates!: QueryList<GridColumnCommandTemplateDirective>;
+
   // Command templates
-  columnCommandTemplate = contentChild(GridColumnCommandTemplateDirective, { read: TemplateRef });
   captionCommandTemplate = contentChild(GridCaptionCommandTemplateDirective, { read: TemplateRef });
   footerTemplate = contentChild(GridFooterTemplateDirective, { read: TemplateRef });
+
+  // Actions template
+  actionsTemplate?: TemplateRef<any>;
+  checkboxTemplate?: TemplateRef<any>;
 
   @Output() dataLoad = new EventEmitter<GridDataResult<T>>();
   @Output() rowSelect = new EventEmitter<T>();
@@ -138,11 +143,35 @@ export class DataGridComponent<T = any> implements OnInit, OnChanges, AfterConte
   ngAfterContentInit(): void {
     // Process column components from content projection
     this.processColumnComponents();
-    
+
+    // Process templates
+    this.processTemplates();
+
     // Watch for column changes
     this.columnComponents.changes.subscribe(() => {
       this.processColumnComponents();
     });
+
+    // Watch for template changes
+    this.columnCommandTemplates.changes.subscribe(() => {
+      this.processTemplates();
+    });
+  }
+
+  private processTemplates(): void {
+    if (this.columnCommandTemplates && this.columnCommandTemplates.length > 0) {
+      this.columnCommandTemplates.forEach(directive => {
+        const name = directive.name;
+        const templateRef = directive.templateRef;
+
+        // Store the template based on name
+        if (name === 'actions') {
+          this.actionsTemplate = templateRef;
+        } else if (name === 'checkbox' || name === 'select') {
+          this.checkboxTemplate = templateRef;
+        }
+      });
+    }
   }
 
   ngOnInit(): void {
@@ -341,9 +370,14 @@ export class DataGridComponent<T = any> implements OnInit, OnChanges, AfterConte
     }
   }
 
-  onRowSelect(row: T, event: Event): void {
+  onRowSelect(row: T, event?: Event): void {
     if (!this.config?.selectable) {
       return;
+    }
+
+    // Stop event propagation if event exists
+    if (event) {
+      event.stopPropagation();
     }
 
     if (this.config?.multiSelect) {
@@ -361,6 +395,31 @@ export class DataGridComponent<T = any> implements OnInit, OnChanges, AfterConte
     }
 
     this.state.selectedRows = Array.from(this.selectedRows);
+  }
+
+  toggleSelectAll(event: Event): void {
+    const checkbox = event.target as HTMLInputElement;
+
+    if (checkbox.checked) {
+      // Select all rows on current page
+      this.gridData.forEach(row => this.selectedRows.add(row));
+    } else {
+      // Deselect all rows
+      this.selectedRows.clear();
+    }
+
+    this.state.selectedRows = Array.from(this.selectedRows);
+  }
+
+  isAllSelected(): boolean {
+    if (this.gridData.length === 0) return false;
+    return this.gridData.every(row => this.selectedRows.has(row));
+  }
+
+  isSomeSelected(): boolean {
+    if (this.gridData.length === 0) return false;
+    const selectedCount = this.gridData.filter(row => this.selectedRows.has(row)).length;
+    return selectedCount > 0 && selectedCount < this.gridData.length;
   }
 
   isRowSelected(row: T): boolean {

@@ -11,6 +11,7 @@ export const ODATA_BASE_URL = new InjectionToken<string>('ODATA_BASE_URL');
  * Implements IDataAdapter for OData protocol
  */
 export class ODataAdapter<T = any> implements IDataAdapter<T> {
+  
   constructor(
     private http: HttpClient,
     private baseUrl: string

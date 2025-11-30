@@ -34,6 +34,12 @@ A modern, feature-rich, and highly customizable Angular data grid component buil
 - **Export Options**: Excel and PDF export capabilities
 - **State Management**: Preserve grid state (sorting, filtering, pagination)
 
+## Links
+
+- **GitHub Repository**: [https://github.com/NlabsNpmPackages/nlabs-grid](https://github.com/NlabsNpmPackages/nlabs-grid)
+- **Example Usage**: [https://github.com/nlabsGlobalAngular/nlabs-grid](https://github.com/nlabsGlobalAngular/nlabs-grid)
+- **npm Package**: [https://www.npmjs.com/package/nlabs-grid](https://www.npmjs.com/package/nlabs-grid)
+
 ## Installation
 
 ```bash

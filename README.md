@@ -16,7 +16,7 @@ NlabsGrid is a customizable Angular data grid library designed for enterprise ap
 Install the library using npm:
 
 ```bash
-npm install nlabs-grid
+npm install @nlabtech/nlabs-grid
 ```
 
 ## Usage
@@ -24,7 +24,7 @@ npm install nlabs-grid
 Import the `NlabsGrid` module and use the `<nlabs-data-grid>` component in your Angular application:
 
 ```typescript
-import { DataGridComponent } from 'nlabs-grid';
+import { DataGridComponent } from '@nlabtech/nlabs-grid';
 ```
 
 Example usage in a template:

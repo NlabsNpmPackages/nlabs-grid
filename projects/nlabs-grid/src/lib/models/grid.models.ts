@@ -7,12 +7,16 @@ export interface GridColumn<T = any> {
   header: string;
   sortable?: boolean;
   filterable?: boolean;
-  filterType?: 'text' | 'number' | 'date' | 'boolean';
+  filterType?: 'text' | 'number' | 'numberrange' | 'date' | 'daterange' | 'boolean' | 'select';
+  filterData?: { label: string; value: any }[];
   width?: string;
   minWidth?: string;
   maxWidth?: string;
-  type?: 'text' | 'number' | 'date' | 'boolean' | 'custom';
-  format?: (value: any) => string;
+  type?: 'text' | 'number' | 'numberrange' | 'date' | 'daterange' | 'boolean' | 'select' | 'custom';
+  format?: ((value: any) => string) | string | null;
+  symbol?: string;
+  fraction?: number;
+  showSymbolInFront?: boolean;
   cellTemplate?: any; // TemplateRef for custom cell rendering
   visible?: boolean;
   frozen?: boolean;
@@ -69,7 +73,7 @@ export interface FilterMetadata {
   field: string;
   operator: FilterOperator;
   value: any;
-  matchMode?: 'contains' | 'notContains' | 'startsWith' | 'endsWith' | 'equals' | 'notEquals' | 'lt' | 'lte' | 'gt' | 'gte' | 'isEmpty' | 'isNotEmpty';
+  matchMode?: 'contains' | 'notContains' | 'startsWith' | 'endsWith' | 'equals' | 'notEquals' | 'lt' | 'lte' | 'gt' | 'gte' | 'between' | 'isEmpty' | 'isNotEmpty';
 }
 
 export type FilterOperator = 'and' | 'or';

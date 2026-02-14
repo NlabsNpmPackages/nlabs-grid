@@ -30,7 +30,6 @@ import {
 } from '../../models/grid.models';
 import { IDataAdapter } from '../../adapters/data-adapter.interface';
 import { GridDataService } from '../../services/grid-data.service';
-import { GridColumnComponent } from '../grid-column/grid-column.component';
 import { ThemeService } from '../../services/theme.service';
 import { ThemeSelectorComponent } from '../theme-selector/theme-selector.component';
 
@@ -40,12 +39,18 @@ import { GridHeaderTemplateDirective } from '../../directives/grid-header-templa
 import { GridColumnCommandTemplateDirective } from '../../directives/grid-column-command-template.directive';
 import { GridCaptionCommandTemplateDirective } from '../../directives/grid-caption-command-template.directive';
 import { GridFooterTemplateDirective } from '../../directives/grid-footer-template.directive';
+import { GridColumnComponent } from '../grid-column/grid-column.component';
 
 
 @Component({
   selector: 'nlabs-data-grid',
   standalone: true,
-  imports: [CommonModule, FormsModule, GridColumnComponent, ThemeSelectorComponent],
+  imports: [
+    CommonModule, 
+    FormsModule, 
+    GridColumnComponent, 
+    ThemeSelectorComponent
+  ],
   providers: [GridDataService, ThemeService],
   templateUrl: 'data-grid.component.html',
   styleUrls: ['./data-grid.component.scss']
@@ -132,8 +137,21 @@ export class DataGridComponent<T = any> implements OnInit, OnChanges, AfterConte
   // Filter Modal
   showFilterModal = false;
   currentFilterColumn: GridColumn | null = null;
-  currentFilterOperator: 'contains' | 'notContains' | 'equals' | 'notEquals' | 'startsWith' | 'endsWith' | 'lt' | 'lte' | 'gt' | 'gte' | 'isEmpty' | 'isNotEmpty' = 'contains';
+  currentFilterOperator: 'contains' | 'notContains' | 'equals' | 'notEquals' | 'startsWith' | 'endsWith' | 'lt' | 'lte' | 'gt' | 'gte' | 'between' | 'isEmpty' | 'isNotEmpty' = 'contains';
   filterValue = '';
+  filterValue2 = ''; // Second value for between operator
+
+  // Date Range Filter State
+  dateRangeValues: Map<string, { start: string; end: string }> = new Map();
+  filterModalDateStart = '';
+  filterModalDateEnd = '';
+
+  // Range Modal State (for between operator)
+  filterModalRangeStart = '';
+  filterModalRangeEnd = '';
+
+  // Number Range Filter State
+  numberRangeValues: Map<string, { min: string; max: string }> = new Map();
 
   constructor(
     private gridDataService: GridDataService<T>,
@@ -192,6 +210,14 @@ export class DataGridComponent<T = any> implements OnInit, OnChanges, AfterConte
       this.pagination.totalRecords = this.totalRecords || this.gridData.length;
       this.updatePagination();
     }
+
+    // Adapter değiştiğinde veriyi yeniden yükle
+    if (changes['adapter'] && !changes['adapter'].firstChange && this.lazy) {
+      this.gridDataService.setAdapter(this.adapter);
+      this.state.page = 0;
+      this.pagination.page = 0;
+      this.loadData();
+    }
   }
 
   ngAfterViewInit(): void {
@@ -217,7 +243,9 @@ export class DataGridComponent<T = any> implements OnInit, OnChanges, AfterConte
       this.displayedColumns = this.config.columns.map(col => ({
         ...col,
         visible: col.visible !== false,
-        resizable: col.resizable !== false
+        resizable: col.resizable !== false,
+        filterType: col.filterType || 'text',
+        filterData: col.filterData || undefined
       }));
     }
 
@@ -248,6 +276,8 @@ export class DataGridComponent<T = any> implements OnInit, OnChanges, AfterConte
         header: comp.getDisplayTitle(),
         sortable: comp.sortable(),
         filterable: comp.filterable(),
+        filterType: comp.filterType() as any,
+        filterData: comp.filterData(),
         visible: comp.visible(),
         resizable: comp.resizable(),
         width: comp.width(),
@@ -256,7 +286,10 @@ export class DataGridComponent<T = any> implements OnInit, OnChanges, AfterConte
         type: comp.filterType() as any,
         cellTemplate: cellDirective,
         frozen: comp.frozen(),
-        format: comp.format() as any
+        format: comp.format() as any,
+        symbol: comp.symbol(),
+        fraction: comp.fraction(),
+        showSymbolInFront: comp.showSymbolInFront()
       };
 
       return column;
@@ -274,7 +307,8 @@ export class DataGridComponent<T = any> implements OnInit, OnChanges, AfterConte
       skip: this.state.page * this.state.pageSize,
       top: this.state.pageSize,
       orderBy: this.buildOrderBy(),
-      filter: this.buildFilter()
+      filter: this.buildFilter(),
+      globalSearch: this.globalSearchTerm?.trim() || undefined
     };
 
     this.gridDataService.getData(request).subscribe({
@@ -339,18 +373,26 @@ export class DataGridComponent<T = any> implements OnInit, OnChanges, AfterConte
     }
   }
 
+  getColumnFilterType(column: GridColumn): string {
+    return column.filterType || column.type || 'text';
+  }
+
   onFilter(column: GridColumn, value: any): void {
     if (!column.filterable) {
       return;
     }
 
-    if (value && value.trim()) {
+    const filterType = this.getColumnFilterType(column);
+    const hasValue = value !== null && value !== undefined && String(value).trim() !== '';
+
+    if (hasValue) {
       this.filterMetadata = this.filterMetadata.filter(f => f.field !== column.field);
+      const matchMode = (filterType === 'select' || filterType === 'boolean') ? 'equals' : 'contains';
       this.filterMetadata.push({
         field: column.field as string,
         operator: 'and',
-        value: value,
-        matchMode: 'contains'
+        value: String(value).trim(),
+        matchMode
       });
       this.state.filters?.set(column.field as string, value);
     } else {
@@ -360,9 +402,9 @@ export class DataGridComponent<T = any> implements OnInit, OnChanges, AfterConte
 
     this.state.page = 0;
     this.pagination.page = 0;
-    
+
     this.emitStateChange();
-    
+
     if (this.lazy) {
       this.loadData();
     } else {
@@ -532,6 +574,45 @@ export class DataGridComponent<T = any> implements OnInit, OnChanges, AfterConte
               return dateValue.getTime() >= dateFilterValue.getTime();
             }
             return !isNaN(numValue) && !isNaN(numFilterValue) && numValue >= numFilterValue;
+          case 'between':
+            // Value format: "start|end" - works for both dates and numbers
+            const rangeParts = String(filter.value).split('|');
+            const rangeStartStr = rangeParts[0] || '';
+            const rangeEndStr = rangeParts[1] || '';
+
+            // Try numeric comparison first
+            const numRangeValue = Number(value);
+            const numRangeStart = Number(rangeStartStr);
+            const numRangeEnd = Number(rangeEndStr);
+            const isNumericRange = !isNaN(numRangeValue) && (
+              (rangeStartStr && !isNaN(numRangeStart)) || (rangeEndStr && !isNaN(numRangeEnd))
+            );
+
+            if (isNumericRange && !(value instanceof Date) && !String(rangeStartStr).match(/^\d{4}-\d{2}/)) {
+              // Numeric between
+              if (rangeStartStr && rangeEndStr && !isNaN(numRangeStart) && !isNaN(numRangeEnd)) {
+                return numRangeValue >= numRangeStart && numRangeValue <= numRangeEnd;
+              } else if (rangeStartStr && !isNaN(numRangeStart)) {
+                return numRangeValue >= numRangeStart;
+              } else if (rangeEndStr && !isNaN(numRangeEnd)) {
+                return numRangeValue <= numRangeEnd;
+              }
+              return true;
+            }
+
+            // Date between
+            const rangeStart = rangeStartStr ? new Date(rangeStartStr) : null;
+            const rangeEnd = rangeEndStr ? new Date(rangeEndStr) : null;
+            if (isValidDate) {
+              if (rangeStart && rangeEnd && !isNaN(rangeStart.getTime()) && !isNaN(rangeEnd.getTime())) {
+                return dateValue.getTime() >= rangeStart.getTime() && dateValue.getTime() <= rangeEnd.getTime();
+              } else if (rangeStart && !isNaN(rangeStart.getTime())) {
+                return dateValue.getTime() >= rangeStart.getTime();
+              } else if (rangeEnd && !isNaN(rangeEnd.getTime())) {
+                return dateValue.getTime() <= rangeEnd.getTime();
+              }
+            }
+            return true;
           default:
             return strValue.includes(filterValue);
         }
@@ -553,10 +634,48 @@ export class DataGridComponent<T = any> implements OnInit, OnChanges, AfterConte
     this.stateChange.emit({ ...this.state });
   }
 
+  trackByRow(index: number, row: any): any {
+    // Try to use id, _id, or unique identifier, fallback to index + stringified row
+    return row?.id ?? row?._id ?? row?.Id ?? `${index}-${JSON.stringify(row)}`;
+  }
+
   getCellValue(row: any, column: GridColumn): any {
     const value = row[column.field];
-    // Format is now just a hint string (like 'c', 'd', 'p'), not a function
-    // Actual formatting should be done via pipes in template
+
+    // If format is a function, use it directly
+    if (column.format && typeof column.format === 'function') {
+      try { return column.format(value); } catch { /* ignore */ }
+    }
+
+    // Currency formatting: format === 'c'
+    if (typeof column.format === 'string' && column.format.toLowerCase() === 'c') {
+      const numVal = typeof value === 'number' ? value : parseFloat(value);
+      if (!isNaN(numVal)) {
+        const fraction = column.fraction ?? 2;
+        const formatted = numVal.toLocaleString('tr-TR', {
+          minimumFractionDigits: fraction,
+          maximumFractionDigits: fraction
+        });
+        const sym = column.symbol || '';
+        if (!sym) return formatted;
+        return column.showSymbolInFront !== false
+          ? `${sym}${formatted}`
+          : `${formatted} ${sym}`;
+      }
+    }
+
+    // Number formatting: format === 'n'
+    if (typeof column.format === 'string' && column.format.toLowerCase() === 'n') {
+      const numVal = typeof value === 'number' ? value : parseFloat(value);
+      if (!isNaN(numVal)) {
+        const fraction = column.fraction ?? 2;
+        return numVal.toLocaleString('tr-TR', {
+          minimumFractionDigits: fraction,
+          maximumFractionDigits: fraction
+        });
+      }
+    }
+
     return value;
   }
 
@@ -592,13 +711,24 @@ export class DataGridComponent<T = any> implements OnInit, OnChanges, AfterConte
     // Load existing filter
     const existingFilter = this.filterMetadata.find(f => f.field === column.field);
     if (existingFilter) {
-      this.filterValue = existingFilter.value;
+      if (existingFilter.matchMode === 'between') {
+        // Parse 'value1|value2' format for between operator
+        const parts = String(existingFilter.value).split('|');
+        this.filterValue = parts[0] || '';
+        this.filterValue2 = parts[1] || '';
+      } else {
+        this.filterValue = existingFilter.value;
+        this.filterValue2 = '';
+      }
       this.currentFilterOperator = existingFilter.matchMode as any;
     } else {
       this.filterValue = '';
+      this.filterValue2 = '';
       // Set default operator based on filterType
       const filterType = column.filterType || 'text';
-      if (filterType === 'number' || filterType === 'date') {
+      if (filterType === 'daterange' || filterType === 'numberrange') {
+        this.currentFilterOperator = 'between';
+      } else if (filterType === 'number' || filterType === 'date') {
         this.currentFilterOperator = 'equals';
       } else {
         this.currentFilterOperator = 'contains';
@@ -612,6 +742,7 @@ export class DataGridComponent<T = any> implements OnInit, OnChanges, AfterConte
     this.showFilterModal = false;
     this.currentFilterColumn = null;
     this.filterValue = '';
+    this.filterValue2 = '';
   }
 
   applyFilterModal(): void {
@@ -624,16 +755,43 @@ export class DataGridComponent<T = any> implements OnInit, OnChanges, AfterConte
 
     // For isEmpty and isNotEmpty, no value is needed
     const needsValue = this.currentFilterOperator !== 'isEmpty' && this.currentFilterOperator !== 'isNotEmpty';
+    const isBetween = this.currentFilterOperator === 'between';
 
-    // Add new filter if value is not empty OR if operator doesn't need value
-    if (!needsValue || (this.filterValue && this.filterValue.trim())) {
+    // Convert to string safely (type="number" inputs set value as number, not string)
+    const safeVal = String(this.filterValue ?? '').trim();
+    const safeVal2 = String(this.filterValue2 ?? '').trim();
+
+    if (isBetween) {
+      // Between: combine two values as 'value1|value2'
+      if (safeVal || safeVal2) {
+        const combinedValue = `${safeVal}|${safeVal2}`;
+        this.filterMetadata.push({
+          field: field,
+          operator: 'and',
+          value: combinedValue,
+          matchMode: 'between'
+        });
+        this.state.filters?.set(field, combinedValue);
+
+        // Also update dateRangeValues if it's a date type
+        const filterType = this.currentFilterColumn?.filterType || 'text';
+        if (filterType === 'date' || filterType === 'daterange') {
+          this.dateRangeValues.set(field, { start: safeVal, end: safeVal2 });
+        } else if (filterType === 'number' || filterType === 'numberrange') {
+          this.numberRangeValues.set(field, { min: safeVal, max: safeVal2 });
+        }
+      } else {
+        this.state.filters?.delete(field);
+      }
+    } else if (!needsValue || safeVal) {
+      // Add new filter if value is not empty OR if operator doesn't need value
       this.filterMetadata.push({
         field: field,
         operator: 'and',
-        value: needsValue ? this.filterValue.trim() : '',
+        value: needsValue ? safeVal : '',
         matchMode: this.currentFilterOperator
       });
-      this.state.filters?.set(field, needsValue ? this.filterValue.trim() : this.currentFilterOperator);
+      this.state.filters?.set(field, needsValue ? safeVal : this.currentFilterOperator);
     } else {
       this.state.filters?.delete(field);
     }
@@ -659,6 +817,10 @@ export class DataGridComponent<T = any> implements OnInit, OnChanges, AfterConte
     this.filterMetadata = this.filterMetadata.filter(f => f.field !== field);
     this.state.filters?.delete(field);
 
+    // Clear range maps
+    this.dateRangeValues.delete(field);
+    this.numberRangeValues.delete(field);
+
     this.state.page = 0;
     this.pagination.page = 0;
     
@@ -675,6 +837,77 @@ export class DataGridComponent<T = any> implements OnInit, OnChanges, AfterConte
 
   isFilterActive(column: GridColumn): boolean {
     return this.filterMetadata.some(f => f.field === column.field);
+  }
+
+  // Range Summary for filter row display
+  getRangeSummary(column: GridColumn): string {
+    const filter = this.filterMetadata.find(f => f.field === column.field);
+    if (!filter) return '';
+
+    if (filter.matchMode === 'between') {
+      const parts = String(filter.value).split('|');
+      const start = parts[0] || '';
+      const end = parts[1] || '';
+      if (start && end) return `${start} ~ ${end}`;
+      if (start) return `≥ ${start}`;
+      if (end) return `≤ ${end}`;
+    }
+
+    // For non-between operators, show operator symbol + value
+    const opSymbols: Record<string, string> = {
+      equals: '=', notEquals: '≠', lt: '<', lte: '≤', gt: '>', gte: '≥',
+      isEmpty: '∅', isNotEmpty: '≠∅'
+    };
+    const symbol = opSymbols[filter.matchMode || ''] || '';
+    return symbol ? `${symbol} ${filter.value}` : filter.value || '';
+  }
+
+  // Date Range Filter Methods
+  getDateRangeStart(column: GridColumn): string {
+    return this.dateRangeValues.get(column.field as string)?.start || '';
+  }
+
+  getDateRangeEnd(column: GridColumn): string {
+    return this.dateRangeValues.get(column.field as string)?.end || '';
+  }
+
+  onDateRangeFilter(column: GridColumn, startDate: string, endDate: string): void {
+    if (!column.filterable) {
+      return;
+    }
+
+    const field = column.field as string;
+
+    // Store the range values
+    this.dateRangeValues.set(field, { start: startDate, end: endDate });
+
+    // Remove existing filter for this field
+    this.filterMetadata = this.filterMetadata.filter(f => f.field !== field);
+
+    if (startDate || endDate) {
+      // Use 'between' matchMode with value as "startDate|endDate"
+      const rangeValue = `${startDate || ''}|${endDate || ''}`;
+      this.filterMetadata.push({
+        field: field,
+        operator: 'and',
+        value: rangeValue,
+        matchMode: 'between'
+      });
+      this.state.filters?.set(field, rangeValue);
+    } else {
+      this.state.filters?.delete(field);
+    }
+
+    this.state.page = 0;
+    this.pagination.page = 0;
+
+    this.emitStateChange();
+
+    if (this.lazy) {
+      this.loadData();
+    } else {
+      this.filterLocal();
+    }
   }
 
   getPageNumbers(): number[] {

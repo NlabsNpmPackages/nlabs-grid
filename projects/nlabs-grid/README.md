@@ -1,11 +1,16 @@
+
 # nlabs-grid
 
-A modern, feature-rich, and highly customizable Angular data grid component built for Angular 20+ with full theme support and enterprise-grade functionality.
+## v2.0.0
+
+- Büyük sürüm güncellemesi. Geriye uyumsuz değişiklikler ve yeni özellikler eklendi. Ayrıntılar için lütfen değişiklik geçmişine bakınız.
+
+A modern, feature-rich, and highly customizable Angular data grid component built for Angular 21+ with full theme support and enterprise-grade functionality.
 
 ## Features
 
 ### Core Features
-- **Modern Angular**: Built with Angular 20+ using standalone components
+- **Modern Angular**: Built with Angular 21+ using standalone components
 - **TypeScript**: Full TypeScript support with type safety
 - **Reactive Design**: Built with signals and reactive patterns
 - **Theme Support**: Built-in light/dark theme with customizable CSS variables
@@ -38,12 +43,12 @@ A modern, feature-rich, and highly customizable Angular data grid component buil
 
 - **GitHub Repository**: [https://github.com/NlabsNpmPackages/nlabs-grid](https://github.com/NlabsNpmPackages/nlabs-grid)
 - **Example Usage**: [https://github.com/NlabsGlobalFullStack/nlabs-data-grid-example](https://github.com/NlabsGlobalFullStack/nlabs-data-grid-example)
-- **npm Package**: [https://www.npmjs.com/package/nlabs-grid](https://www.npmjs.com/package/nlabs-grid)
+- **npm Package**: [https://www.npmjs.com/package/@nlabtech/nlabs-grid](https://www.npmjs.com/package/@nlabtech/nlabs-grid)
 
 ## Installation
 
 ```bash
-npm install nlabs-grid
+npm install @nlabtech/nlabs-grid
 ```
 
 ## Quick Start
@@ -52,7 +57,7 @@ npm install nlabs-grid
 
 ```typescript
 import { Component } from '@angular/core';
-import { DataGridComponent, GridConfig, ODataAdapter } from 'nlabs-grid';
+import { DataGridComponent, GridConfig, ODataAdapter } from '@nlabtech/nlabs-grid';
 import { HttpClient } from '@angular/common/http';
 
 @Component({
@@ -171,7 +176,7 @@ onRowUnselect(row: any): void {
 ### Custom Actions Column
 
 ```typescript
-import { GridColumnCommandTemplateDirective } from 'nlabs-grid';
+import { GridColumnCommandTemplateDirective } from '@nlabtech/nlabs-grid';
 
 @Component({
   imports: [DataGridComponent, GridColumnCommandTemplateDirective],
@@ -202,7 +207,7 @@ import { GridColumnCommandTemplateDirective } from 'nlabs-grid';
 ### Custom Footer Template
 
 ```typescript
-import { GridFooterTemplateDirective } from 'nlabs-grid';
+import { GridFooterTemplateDirective } from '@nlabtech/nlabs-grid';
 
 @Component({
   imports: [DataGridComponent, GridFooterTemplateDirective],
@@ -224,7 +229,7 @@ import { GridFooterTemplateDirective } from 'nlabs-grid';
 ### OData Integration
 
 ```typescript
-import { ODataAdapter } from 'nlabs-grid';
+import { ODataAdapter } from '@nlabtech/nlabs-grid';
 
 // Create adapter
 this.odataAdapter = new ODataAdapter<User>(
@@ -239,6 +244,196 @@ this.odataAdapter = new ODataAdapter<User>(
   [autoLoad]="true"
 />
 ```
+
+### REST API Integration
+
+For standard REST endpoints (non-OData), use the `RestAdapter`:
+
+```typescript
+import { RestAdapter, RestAdapterConfig } from '@nlabtech/nlabs-grid';
+
+// Simple usage - API returns { data: [], total: number }
+this.restAdapter = new RestAdapter<User>(
+  this.http,
+  'http://localhost:5000/api/users'
+);
+
+// Custom configuration
+this.restAdapter = new RestAdapter<User>(
+  this.http,
+  'http://localhost:5000/api/users',
+  {
+    usePagination: 'page',           // Use page/pageSize instead of skip/take
+    pageParam: 'page',               // Query param name for page
+    pageSizeParam: 'limit',          // Query param name for page size
+    sortParam: 'orderBy',            // Query param name for sorting
+    dataKey: 'result.items',         // Nested path to data array
+    totalKey: 'result.totalCount'    // Nested path to total count
+  }
+);
+
+// With custom response mapper for complex APIs
+this.restAdapter = new RestAdapter<User>(
+  this.http,
+  'http://localhost:5000/api/users',
+  {
+    responseMapper: (response) => ({
+      data: response.payload.users,
+      total: response.meta.pagination.total
+    })
+  }
+);
+```
+
+#### REST Backend Examples
+
+**ASP.NET Core Minimal API:**
+
+```csharp
+// Program.cs
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddDbContext<AppDbContext>();
+
+var app = builder.Build();
+
+// GET /api/users?skip=0&pageSize=10&sort=name&filter=...
+app.MapGet("/api/users", async (
+    AppDbContext db,
+    int skip = 0,
+    int pageSize = 10,
+    string? sort = null,
+    string? filter = null) =>
+{
+    var query = db.Users.AsQueryable();
+
+    // Apply filtering
+    if (!string.IsNullOrEmpty(filter))
+    {
+        query = query.Where(u => u.Name.Contains(filter) || u.Email.Contains(filter));
+    }
+
+    // Apply sorting
+    if (!string.IsNullOrEmpty(sort))
+    {
+        query = sort.EndsWith(" desc")
+            ? query.OrderByDescending(u => EF.Property<object>(u, sort.Replace(" desc", "")))
+            : query.OrderBy(u => EF.Property<object>(u, sort));
+    }
+
+    // Get total count before pagination
+    var total = await query.CountAsync();
+
+    // Apply pagination
+    var data = await query.Skip(skip).Take(pageSize).ToListAsync();
+
+    return Results.Ok(new { data, total });
+});
+
+app.Run();
+```
+
+**ASP.NET Core Controller:**
+
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+public class UsersController : ControllerBase
+{
+    private readonly AppDbContext _context;
+
+    public UsersController(AppDbContext context)
+    {
+        _context = context;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetUsers(
+        int skip = 0,
+        int pageSize = 10,
+        string? sort = null,
+        string? filter = null)
+    {
+        var query = _context.Users.AsQueryable();
+
+        // Apply filtering
+        if (!string.IsNullOrEmpty(filter))
+        {
+            query = query.Where(u =>
+                u.Name.Contains(filter) ||
+                u.Email.Contains(filter));
+        }
+
+        // Apply sorting
+        if (!string.IsNullOrEmpty(sort))
+        {
+            var descending = sort.EndsWith(" desc");
+            var field = sort.Replace(" desc", "").Replace(" asc", "");
+
+            query = descending
+                ? query.OrderByDescending(u => EF.Property<object>(u, field))
+                : query.OrderBy(u => EF.Property<object>(u, field));
+        }
+
+        // Get total count
+        var total = await query.CountAsync();
+
+        // Apply pagination
+        var data = await query
+            .Skip(skip)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return Ok(new { data, total });
+    }
+}
+```
+
+**Page-based pagination example:**
+
+```csharp
+// GET /api/users?page=1&limit=10
+app.MapGet("/api/users", async (
+    AppDbContext db,
+    int page = 1,
+    int limit = 10) =>
+{
+    var total = await db.Users.CountAsync();
+    var data = await db.Users
+        .Skip((page - 1) * limit)
+        .Take(limit)
+        .ToListAsync();
+
+    return Results.Ok(new { data, total });
+});
+```
+
+```typescript
+// Angular - use page-based pagination
+this.restAdapter = new RestAdapter<User>(
+  this.http,
+  'http://localhost:5000/api/users',
+  {
+    usePagination: 'page',
+    pageParam: 'page',
+    pageSizeParam: 'limit'
+  }
+);
+```
+
+#### RestAdapterConfig Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `usePagination` | `'page' \| 'skip'` | `'skip'` | Pagination style |
+| `pageParam` | `string` | `'page'` | Query param for page number |
+| `pageSizeParam` | `string` | `'pageSize'` | Query param for page size |
+| `skipParam` | `string` | `'skip'` | Query param for skip count |
+| `sortParam` | `string` | `'sort'` | Query param for sorting |
+| `filterParam` | `string` | `'filter'` | Query param for filtering |
+| `selectParam` | `string` | `'fields'` | Query param for field selection |
+| `dataKey` | `string` | `'data'` | Response property for data array (supports nested paths) |
+| `totalKey` | `string` | `'total'` | Response property for total count (supports nested paths) |
+| `responseMapper` | `function` | - | Custom function to map response to `{ data, total }` |
 
 ### Theme Support
 
@@ -407,8 +602,8 @@ The grid uses CSS variables for theming. You can customize colors by overriding 
 
 ## Requirements
 
-- Angular 20+
-- TypeScript 5.8+
+- Angular 21+
+- TypeScript 5.9+
 - RxJS 7.8+
 
 ## Building the Library

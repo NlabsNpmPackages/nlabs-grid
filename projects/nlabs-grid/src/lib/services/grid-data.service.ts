@@ -7,9 +7,7 @@ import { FilterMetadata, GridDataResult, GridRequest, SortMetadata } from '../mo
  * Grid Data Service
  * Central service for managing grid data operations
  */
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable()
 export class GridDataService<T = any> {
   private adapter?: IDataAdapter<T>;
 
@@ -53,10 +51,23 @@ export class GridDataService<T = any> {
           return `${field} gt ${value}`;
         case 'gte':
           return `${field} ge ${value}`;
+        case 'between':
+          // Value format: "startDate|endDate"
+          const parts = String(filter.value).split('|');
+          const startVal = parts[0] || '';
+          const endVal = parts[1] || '';
+          if (startVal && endVal) {
+            return `${field} ge '${startVal}' and ${field} le '${endVal}'`;
+          } else if (startVal) {
+            return `${field} ge '${startVal}'`;
+          } else if (endVal) {
+            return `${field} le '${endVal}'`;
+          }
+          return '';
         default:
           return `${field} eq ${value}`;
       }
-    });
+    }).filter(part => part !== '');
 
     return filterParts.join(' and ');
   }

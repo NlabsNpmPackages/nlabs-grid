@@ -1,9 +1,9 @@
 {
-  "name": "nlabs-grid",
-  "version": "1.0.2",
+  "name": "@nlabtech/nlabs-grid",
+  "version": "2.0.0",
   "peerDependencies": {
-    "@angular/common": "^20.3.0",
-    "@angular/core": "^20.3.0"
+    "@angular/common": "^21.0.0",
+    "@angular/core": "^21.0.0"
   },
   "dependencies": {
     "tslib": "^2.3.0"

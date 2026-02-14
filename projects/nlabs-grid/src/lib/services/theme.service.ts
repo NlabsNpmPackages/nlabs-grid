@@ -2,9 +2,7 @@ import { Injectable, signal, effect } from '@angular/core';
 
 export type Theme = 'light' | 'dark' | 'auto';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable()
 export class ThemeService {
   private readonly THEME_KEY = 'nlabs-grid-theme';
   

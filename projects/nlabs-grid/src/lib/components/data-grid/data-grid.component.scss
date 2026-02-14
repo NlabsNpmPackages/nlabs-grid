@@ -557,12 +557,20 @@
     border-top: 1px solid var(--grid-border-light);
 
     .filter-cell {
-      padding: 6px 10px;
+      padding: 6px 8px;
+    }
+
+    .filter-cell-inner {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      width: 100%;
     }
 
     .filter-input {
-      width: 100%;
-      padding: 8px 12px;
+      flex: 1;
+      min-width: 0;
+      padding: 6px 10px;
       border: 1px solid var(--grid-border-light);
       border-radius: var(--grid-radius-sm);
       font-size: 13px;
@@ -584,6 +592,73 @@
         color: var(--grid-text-tertiary);
         font-size: 12px;
         opacity: 0.7;
+      }
+    }
+
+    .filter-select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      padding-right: 24px;
+    }
+
+    .daterange-filter {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex: 1;
+      min-width: 0;
+
+      .daterange-input {
+        flex: 1;
+        min-width: 0;
+        padding: 4px 6px;
+        font-size: 12px;
+      }
+
+      .daterange-separator {
+        flex-shrink: 0;
+        color: var(--grid-text-tertiary);
+        font-size: 12px;
+        font-weight: 500;
+      }
+    }
+
+    .range-summary-input {
+      cursor: pointer;
+      caret-color: transparent;
+      font-size: 12px;
+      color: var(--grid-text-secondary);
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
+
+      &.has-value {
+        color: var(--grid-text-primary);
+        font-weight: 500;
+        background: rgba(79, 70, 229, 0.06);
+        border-color: var(--grid-primary-color);
+      }
+
+      &:hover {
+        border-color: var(--grid-primary-color);
+        background: rgba(79, 70, 229, 0.04);
+      }
+
+      &::placeholder {
+        font-weight: 400;
+      }
+    }
+
+    .filter-btn {
+      flex-shrink: 0;
+      padding: 4px;
+      border-radius: var(--grid-radius-sm);
+
+      svg {
+        display: block;
       }
     }
   }
@@ -918,6 +993,21 @@
     input.form-control::placeholder {
       color: var(--grid-text-tertiary);
       opacity: 0.6;
+    }
+  }
+
+  .between-info {
+    padding: 12px 14px;
+    background: var(--grid-bg-secondary);
+    border-radius: var(--grid-radius-sm);
+    border: 1px solid var(--grid-border-light);
+    margin-bottom: 16px;
+
+    p {
+      margin: 0;
+      font-size: 0.8125rem;
+      color: var(--grid-text-secondary);
+      line-height: 1.5;
     }
   }
 }

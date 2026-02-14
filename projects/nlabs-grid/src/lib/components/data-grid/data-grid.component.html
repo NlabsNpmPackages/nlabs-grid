@@ -1,453 +1,567 @@
 <div class="nlabs-data-grid" [class.loading]="loading">
+  <!-- Hidden content projection for column components and templates -->
+  <div style="display:none"><ng-content></ng-content></div>
+
   <!-- Loading Overlay -->
   @if (loading) {
-  <div class="grid-loading-overlay">
-    <div class="spinner"></div>
-  </div>
+    <div class="grid-loading-overlay">
+      <div class="spinner"></div>
+    </div>
   }
 
 
   <!-- Grid Container -->
   <div class="grid-container">
     <!-- Toolbar with Global Search, Export, Theme Selector -->
-    <div class="grid-toolbar" *ngIf="config?.showHeader !== false">
-      <div class="toolbar-left">
-        <!-- Global Search -->
-        @if(showGlobalSearch()){
-        <div class="global-search">
-          <input type="text" class="global-search-input" placeholder="🔍 Search in all columns..."
-            [(ngModel)]="globalSearchTerm" (input)="onGlobalSearch($any($event.target).value)" />
-        </div>
-        }
-
-      </div>
-
-      <div class="toolbar-center">
-        <!-- Add Button -->
-        @if (showAddButton()) {
-        <button class="toolbar-btn btn-add" (click)="onAddButtonClick()" title="Add new record">
-          ➕ {{ addButtonText() }}
-        </button>
-        }
-
-
-        <!-- Export Buttons -->
-        @if (showExport()) {
-        <div class="export-buttons">
-          <button class="toolbar-btn btn-export" (click)="exportToExcel()" title="Export to Excel/CSV">
-            📊 Excel
-          </button>
-          <button class="toolbar-btn btn-export" (click)="exportToPDF()" title="Export to PDF / Print">
-            📄 PDF
-          </button>
-        </div>
-        }
-
-
-        <!-- Caption Command Template -->
-        @if (captionCommandTemplate()) {
-        <ng-container>
-          <ng-container *ngTemplateOutlet="captionCommandTemplate()!"></ng-container>
-        </ng-container>
-        }
-
-      </div>
-
-      <div class="toolbar-right">
-        <!-- Column Chooser -->
-        @if (showColumnChooser() && (config?.reorderable || config?.resizable)) {
-        <div class="column-chooser">
-          <button class="column-chooser-btn btn-icon-only" (click)="showColumnChooserModal = !showColumnChooserModal"
-            title="Show/Hide Columns">
-            ☰
-          </button>
-
-          <!-- Backdrop -->
-          <div class="column-chooser-backdrop" *ngIf="showColumnChooserModal" (click)="showColumnChooserModal = false">
-          </div>
-
-          <div class="column-chooser-panel" *ngIf="showColumnChooserModal">
-            <div class="column-chooser-header">
-              <span>Show/Hide Columns</span>
-              <button (click)="showColumnChooserModal = false">✕</button>
-            </div>
-            <div class="column-list">
-              <div *ngFor="let column of displayedColumns" class="column-item">
-                <label>
-                  <input type="checkbox" [checked]="column.visible !== false"
-                    (change)="toggleColumnVisibility(column)" />
-                  <span>{{ column.header }}</span>
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
-        }
-
-
-        <theme-selector [showSelector]="showThemeSelector()" />
-
-        <!-- Refresh Button -->
-        <button class="toolbar-btn btn-refresh btn-icon-only" (click)="onRefreshClick()" title="Refresh data">
-          🔄
-        </button>
-      </div>
-    </div>
-
-    <!-- Header -->
     @if (config?.showHeader !== false) {
-    <div class="grid-header" #gridHeader>
-      <div class="grid-row header-row">
-        <!-- Checkbox Column Header -->
-        @if (config?.selectable && (config?.showCheckboxColumn !== false)) {
-        <div class="grid-cell header-cell checkbox-cell"
-          [style.width]="config?.checkboxColumnWidth || '60px'"
-          [style.min-width]="config?.checkboxColumnWidth || '60px'"
-          [style.max-width]="config?.checkboxColumnWidth || '60px'">
-          <div class="header-content">
-            @if (config?.multiSelect) {
-            <input
-              type="checkbox"
-              class="grid-checkbox header-checkbox"
-              [checked]="isAllSelected()"
-              [indeterminate]="isSomeSelected()"
-              (change)="toggleSelectAll($event)"
-              title="Select All"
-            />
+      <div class="grid-toolbar">
+        <div class="toolbar-left">
+          <!-- Global Search -->
+          @if(showGlobalSearch()){
+            <div class="global-search">
+              <input type="text" class="global-search-input" placeholder="🔍 Tüm sütunlarda ara..."
+                [(ngModel)]="globalSearchTerm" (input)="onGlobalSearch($any($event.target).value)" />
+              </div>
             }
           </div>
-        </div>
+          <div class="toolbar-center">
+            <!-- Add Button -->
+            @if (showAddButton()) {
+              <button class="toolbar-btn btn-add" (click)="onAddButtonClick()" title="Yeni kayıt ekle">
+                ➕ {{ addButtonText() }}
+              </button>
+            }
+            <!-- Export Buttons -->
+            @if (showExport()) {
+              <div class="export-buttons">
+                <button class="toolbar-btn btn-export" (click)="exportToExcel()" title="Excel'e Aktar">
+                  📊 Excel
+                </button>
+                <button class="toolbar-btn btn-export" (click)="exportToPDF()" title="PDF'e Aktar / Yazdır">
+                  📄 PDF
+                </button>
+              </div>
+            }
+            <!-- Caption Command Template -->
+            @if (captionCommandTemplate()) {
+              <ng-container>
+                <ng-container *ngTemplateOutlet="captionCommandTemplate()!"></ng-container>
+              </ng-container>
+            }
+          </div>
+          <div class="toolbar-right">
+            <!-- Column Chooser -->
+            @if (showColumnChooser() && (config?.reorderable || config?.resizable)) {
+              <div class="column-chooser">
+                <button class="column-chooser-btn btn-icon-only" (click)="showColumnChooserModal = !showColumnChooserModal"
+                  title="Sütunları Göster/Gizle">
+                  ☰
+                </button>
+                <!-- Backdrop -->
+                @if (showColumnChooserModal) {
+                  <div class="column-chooser-backdrop" (click)="showColumnChooserModal = false">
+                  </div>
+                }
+                @if (showColumnChooserModal) {
+                  <div class="column-chooser-panel">
+                    <div class="column-chooser-header">
+                      <span>Sütunları Göster/Gizle</span>
+                      <button (click)="showColumnChooserModal = false">✕</button>
+                    </div>
+                    <div class="column-list">
+                      @for (column of displayedColumns; track column) {
+                        <div class="column-item">
+                          <label>
+                            <input type="checkbox" [checked]="column.visible !== false"
+                              (change)="toggleColumnVisibility(column)" />
+                              <span>{{ column.header }}</span>
+                            </label>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+              <theme-selector [showSelector]="showThemeSelector()" />
+              <!-- Refresh Button -->
+              <button class="toolbar-btn btn-refresh btn-icon-only" (click)="onRefreshClick()" title="Yenile">
+                🔄
+              </button>
+            </div>
+          </div>
         }
 
-        <!-- Regular Columns -->
-        <div *ngFor="let column of getVisibleColumns(); let i = index" class="grid-cell header-cell"
-          [style.width]="column.width || 'auto'" [style.min-width]="column.minWidth || '50px'"
-          [style.max-width]="column.maxWidth || 'none'" [class.sortable]="column.sortable"
-          [class.dragging]="draggedColumn === column" [class.drop-target]="dropTargetIndex === i"
-          [attr.draggable]="config?.reorderable" (dragstart)="onDragStart($event, column, i)"
-          (dragover)="onColumnDragOver($event, i)" (drop)="onColumnDrop($event, i)" (dragend)="onColumnDragEnd()"
-          (click)="column.sortable && onSort(column)">
-          <div class="header-content">
-            <span class="header-title">{{ column.header }}</span>
-            <div class="header-actions">
-              @if (column.sortable) {
-              <span class="sort-icon">
-                {{ getSortIcon(column) }}
-              </span>
-              }
+        <!-- Header -->
+        @if (config?.showHeader !== false) {
+          <div class="grid-header" #gridHeader>
+            <div class="grid-row header-row">
+              <!-- Checkbox Column Header -->
+              @if (config?.selectable && (config?.showCheckboxColumn !== false)) {
+                <div class="grid-cell header-cell checkbox-cell"
+                  [style.width]="config?.checkboxColumnWidth || '60px'"
+                  [style.min-width]="config?.checkboxColumnWidth || '60px'"
+                  [style.max-width]="config?.checkboxColumnWidth || '60px'">
+                  <div class="header-content">
+                    @if (config?.multiSelect) {
+                      <input
+                        type="checkbox"
+                        class="grid-checkbox header-checkbox"
+                        [checked]="isAllSelected()"
+                        [indeterminate]="isSomeSelected()"
+                        (change)="toggleSelectAll($event)"
+                        title="Tümünü Seç"
+                        />
+                      }
+                    </div>
+                  </div>
+                }
 
-              @if (column.filterable !== false && config?.filterable) {
-              <button class="filter-btn" [class.active]="isFilterActive(column)"
-                (click)="openFilterModal(column, $event)" title="Filter">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                </svg>
-              </button>
+                <!-- Regular Columns -->
+                @for (column of getVisibleColumns(); track column; let i = $index) {
+                  <div class="grid-cell header-cell"
+                    [style.width]="column.width || 'auto'" [style.min-width]="column.minWidth || '50px'"
+                    [style.max-width]="column.maxWidth || 'none'" [class.sortable]="column.sortable"
+                    [class.dragging]="draggedColumn === column" [class.drop-target]="dropTargetIndex === i"
+                    [attr.draggable]="config?.reorderable" (dragstart)="onDragStart($event, column, i)"
+                    (dragover)="onColumnDragOver($event, i)" (drop)="onColumnDrop($event, i)" (dragend)="onColumnDragEnd()"
+                    (click)="column.sortable && onSort(column)">
+                    <div class="header-content">
+                      <span class="header-title">{{ column.header }}</span>
+                      <div class="header-actions">
+                        @if (column.sortable) {
+                          <span class="sort-icon">
+                            {{ getSortIcon(column) }}
+                          </span>
+                        }
+                      </div>
+                    </div>
+                    @if (column.resizable !== false && config?.resizable) {
+                      <span class="resize-handle" (mousedown)="onResizeStart($event, column)"></span>
+                    }
+                  </div>
+                }
+
+                <!-- Actions Column Header -->
+                @if (config?.showActions) {
+                  <div class="grid-cell header-cell actions-cell"
+                    [style.width]="config?.actionsWidth || '150px'"
+                    [style.min-width]="config?.actionsWidth || '150px'"
+                    [style.max-width]="config?.actionsWidth || '150px'">
+                    <div class="header-content">
+                      <span class="header-title">{{ config?.actionsHeader || 'Actions' }}</span>
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <!-- Filter Row -->
+              @if (config?.filterable) {
+                <div class="grid-row filter-row">
+                  <!-- Checkbox Column Filter (Empty) -->
+                  @if (config?.selectable && (config?.showCheckboxColumn !== false)) {
+                    <div class="grid-cell filter-cell checkbox-cell"
+                      [style.width]="config?.checkboxColumnWidth || '60px'"
+                      [style.min-width]="config?.checkboxColumnWidth || '60px'"
+                      [style.max-width]="config?.checkboxColumnWidth || '60px'">
+                    </div>
+                  }
+                  <!-- Regular Column Filters -->
+                  @for (column of getVisibleColumns(); track column.field) {
+                    <div class="grid-cell filter-cell" [style.width]="column.width || 'auto'"
+                      [style.min-width]="column.minWidth || '50px'" [style.max-width]="column.maxWidth || 'none'">
+                      @if (column.filterable !== false) {
+                        <div class="filter-cell-inner">
+                          <!-- Select / Dropdown Filter -->
+                          @if (getColumnFilterType(column) === 'select') {
+                            <select class="filter-input filter-select"
+                              [value]="getFilterValue(column)"
+                              (change)="onFilter(column, $any($event.target).value)"
+                              (click)="$event.stopPropagation()">
+                              <option value="">{{ column.header }}</option>
+                              @for (opt of column.filterData || []; track opt.value) {
+                                <option [value]="opt.value">{{ opt.label }}</option>
+                              }
+                            </select>
+                          }
+                          <!-- Boolean Filter -->
+                          @else if (getColumnFilterType(column) === 'boolean') {
+                            <select class="filter-input filter-select"
+                              [value]="getFilterValue(column)"
+                              (change)="onFilter(column, $any($event.target).value)"
+                              (click)="$event.stopPropagation()">
+                              <option value="">{{ column.header }}</option>
+                              @for (opt of column.filterData || []; track opt.value) {
+                                <option [value]="opt.value">{{ opt.label }}</option>
+                              }
+                            </select>
+                          }
+                          <!-- Number Filter -->
+                          @else if (getColumnFilterType(column) === 'number') {
+                            <input type="number" class="filter-input"
+                              [placeholder]="column.header"
+                              [value]="getFilterValue(column)"
+                              (input)="onFilter(column, $any($event.target).value)"
+                              (click)="$event.stopPropagation()" />
+                          }
+                          <!-- Date Filter -->
+                          @else if (getColumnFilterType(column) === 'date') {
+                            <input type="date" class="filter-input"
+                              [value]="getFilterValue(column)"
+                              (input)="onFilter(column, $any($event.target).value)"
+                              (click)="$event.stopPropagation()" />
+                          }
+                          <!-- Date Range Filter (opens modal) -->
+                          @else if (getColumnFilterType(column) === 'daterange') {
+                            <input type="text" class="filter-input range-summary-input"
+                              [class.has-value]="isFilterActive(column)"
+                              [placeholder]="column.header"
+                              [value]="getRangeSummary(column)"
+                              readonly
+                              (click)="openFilterModal(column, $event)"
+                              title="Filtre Ayarla" />
+                          }
+                          <!-- Number Range Filter (opens modal) -->
+                          @else if (getColumnFilterType(column) === 'numberrange') {
+                            <input type="text" class="filter-input range-summary-input"
+                              [class.has-value]="isFilterActive(column)"
+                              [placeholder]="column.header"
+                              [value]="getRangeSummary(column)"
+                              readonly
+                              (click)="openFilterModal(column, $event)"
+                              title="Filtre Ayarla" />
+                          }
+                          <!-- Text Filter (default) -->
+                          @else {
+                            <input type="text" class="filter-input"
+                              [placeholder]="column.header"
+                              [value]="getFilterValue(column)"
+                              (input)="onFilter(column, $any($event.target).value)"
+                              (click)="$event.stopPropagation()" />
+                          }
+                          <!-- Filter Modal Button -->
+                          @if (getColumnFilterType(column) !== 'select' && getColumnFilterType(column) !== 'boolean') {
+                            <button class="filter-btn" [class.active]="isFilterActive(column)"
+                              (click)="openFilterModal(column, $event)" title="Filter">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                              </svg>
+                            </button>
+                          }
+                        </div>
+                      }
+                      </div>
+                    }
+                    <!-- Actions Column Filter (Empty) -->
+                    @if (config?.showActions) {
+                      <div class="grid-cell filter-cell actions-cell"
+                        [style.width]="config?.actionsWidth || '150px'"
+                        [style.min-width]="config?.actionsWidth || '150px'"
+                        [style.max-width]="config?.actionsWidth || '150px'">
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+
+
+            <!-- Body -->
+            <div class="grid-body" #gridBody>
+              @for (row of gridData; track trackByRow($index, row)) {
+                <div class="grid-row data-row" [class.selected]="isRowSelected(row)" [class.selectable]="config?.selectable"
+                  [style.height]="config?.rowHeight">
+
+                  <!-- Checkbox Column Cell -->
+                  @if (config?.selectable && (config?.showCheckboxColumn !== false)) {
+                    <div class="grid-cell data-cell checkbox-cell"
+                      [style.width]="config?.checkboxColumnWidth || '60px'"
+                      [style.min-width]="config?.checkboxColumnWidth || '60px'"
+                      [style.max-width]="config?.checkboxColumnWidth || '60px'">
+                      @if (checkboxTemplate) {
+                        <ng-container *ngTemplateOutlet="checkboxTemplate; context: { $implicit: row, selected: isRowSelected(row) }"></ng-container>
+                      } @else {
+                        <input
+                          type="checkbox"
+                          class="grid-checkbox row-checkbox"
+                          [checked]="isRowSelected(row)"
+                          (change)="onRowSelect(row, $event)"
+                          (click)="$event.stopPropagation()"
+                          />
+                        }
+                      </div>
+                    }
+
+                    <!-- Regular Data Columns -->
+                    @for (column of getVisibleColumns(); track column.field) {
+                      <div class="grid-cell data-cell" [style.width]="column.width || 'auto'"
+                        [style.min-width]="column.minWidth || '50px'" [style.max-width]="column.maxWidth || 'none'"
+                        [attr.data-type]="column.type">
+                        @if (!column.cellTemplate) {
+                          {{ getCellValue(row, column) }}
+                        }
+                        @if (column.cellTemplate) {
+                          <ng-container
+                          *ngTemplateOutlet="column.cellTemplate; context: { $implicit: row, column: column }"></ng-container>
+                        }
+                      </div>
+                    }
+
+                    <!-- Actions Column Cell -->
+                    @if (config?.showActions) {
+                      <div class="grid-cell data-cell actions-cell"
+                        [style.width]="config?.actionsWidth || '150px'"
+                        [style.min-width]="config?.actionsWidth || '150px'"
+                        [style.max-width]="config?.actionsWidth || '150px'">
+                        @if (actionsTemplate) {
+                          <ng-container *ngTemplateOutlet="actionsTemplate; context: { $implicit: row }"></ng-container>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+
+
+                <!-- Empty State -->
+                @if (gridData.length === 0 && !loading) {
+                  <div class="grid-empty">
+                    <p>{{ config?.emptyMessage || 'Kayıt bulunamadı' }}</p>
+                  </div>
+                }
+
+              </div>
+
+              <!-- Footer / Pagination -->
+              @if (config?.showFooter !== false) {
+                <div class="grid-footer">
+                  <div class="pagination-info">
+                    <span>
+                      {{ pagination.totalRecords }} kayıttan
+                      {{ pagination.page * pagination.pageSize + 1 }} -
+                      {{ Math.min((pagination.page + 1) * pagination.pageSize, pagination.totalRecords) }}
+                      arası gösteriliyor
+                    </span>
+                  </div>
+
+                  <div class="pagination-controls">
+                    <!-- Page Size Selector -->
+                    @if (config?.pageSizeOptions; as pageSizeOptions) {
+                      <div class="page-size-selector">
+                        <label>Sayfa başına satır:</label>
+                        <select [value]="pagination.pageSize" (change)="onPageSizeChange(+$any($event.target).value)"
+                          class="page-size-select">
+                          @for (size of pageSizeOptions; track $index) {
+                            <option [value]="size">
+                              {{ size }}
+                            </option>
+                          }
+                        </select>
+                      </div>
+                    }
+
+                    <!-- Page Navigation -->
+                    <div class="page-navigation">
+                      <button class="page-btn" [disabled]="pagination.page === 0" (click)="onPageChange(0)" title="İlk sayfa">
+                        ⟪
+                      </button>
+                      <button class="page-btn" [disabled]="pagination.page === 0" (click)="onPageChange(pagination.page - 1)"
+                        title="Önceki sayfa">
+                        ‹
+                      </button>
+
+                      @for (pageNum of getPageNumbers(); track pageNum) {
+                        @if (pageNum !== -1) {
+                          <button class="page-btn" [class.active]="pageNum === pagination.page" (click)="onPageChange(pageNum)">
+                            {{ pageNum + 1 }}
+                          </button>
+                        }
+                        @if (pageNum === -1) {
+                          <span class="page-ellipsis">...</span>
+                        }
+                      }
+
+                      <button class="page-btn" [disabled]="pagination.page >= pagination.totalPages - 1"
+                        (click)="onPageChange(pagination.page + 1)" title="Sonraki sayfa">
+                        ›
+                      </button>
+                      <button class="page-btn" [disabled]="pagination.page >= pagination.totalPages - 1"
+                        (click)="onPageChange(pagination.totalPages - 1)" title="Son sayfa">
+                        ⟫
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Custom Footer Template -->
+                  @if (footerTemplate()) {
+                    <div class="grid-custom-footer">
+                      <ng-container
+                      *ngTemplateOutlet="footerTemplate()!; context: { $implicit: gridData, total: pagination.totalRecords }"></ng-container>
+                    </div>
+                  }
+                </div>
               }
 
             </div>
           </div>
-          @if (column.resizable !== false && config?.resizable) {
-          <span class="resize-handle" (mousedown)="onResizeStart($event, column)"></span>
-          }
 
-        </div>
+          <!-- Filter Modal -->
+          @if (showFilterModal) {
+            <div class="filter-modal-overlay" (click)="closeFilterModal()">
+              <div class="filter-modal-content" (click)="$event.stopPropagation()">
+                <div class="filter-modal-header">
+                  <h3>Filtre: {{ currentFilterColumn?.header }}</h3>
+                  <button class="close-btn" (click)="closeFilterModal()">×</button>
+                </div>
 
-        <!-- Actions Column Header -->
-        @if (config?.showActions) {
-        <div class="grid-cell header-cell actions-cell"
-          [style.width]="config?.actionsWidth || '150px'"
-          [style.min-width]="config?.actionsWidth || '150px'"
-          [style.max-width]="config?.actionsWidth || '150px'">
-          <div class="header-content">
-            <span class="header-title">{{ config?.actionsHeader || 'Actions' }}</span>
-          </div>
-        </div>
-        }
-      </div>
+                <div class="filter-modal-body">
+                  <div class="filter-form">
+                    <!-- Operator Selection - STRING -->
+                    @if (!currentFilterColumn?.filterType || currentFilterColumn?.filterType === 'text') {
+                      <div class="form-group">
+                        <label>Operatör:</label>
+                        <select [(ngModel)]="currentFilterOperator" class="form-control">
+                          <option value="contains">İçerir</option>
+                          <option value="notContains">İçermez</option>
+                          <option value="equals">Eşittir</option>
+                          <option value="notEquals">Eşit Değil</option>
+                          <option value="startsWith">İle Başlar</option>
+                          <option value="endsWith">İle Biter</option>
+                          <option value="isEmpty">Boş</option>
+                          <option value="isNotEmpty">Boş Değil</option>
+                        </select>
+                      </div>
+                    }
 
-      <!-- Filter Row -->
-      <div class="grid-row filter-row" *ngIf="config?.filterable">
-        <!-- Checkbox Column Filter (Empty) -->
-        @if (config?.selectable && (config?.showCheckboxColumn !== false)) {
-        <div class="grid-cell filter-cell checkbox-cell"
-          [style.width]="config?.checkboxColumnWidth || '60px'"
-          [style.min-width]="config?.checkboxColumnWidth || '60px'"
-          [style.max-width]="config?.checkboxColumnWidth || '60px'">
-        </div>
-        }
+                    <!-- Operator Selection - NUMBER -->
+                    @if (currentFilterColumn?.filterType === 'number' || currentFilterColumn?.filterType === 'numberrange') {
+                      <div class="form-group">
+                        <label>Operatör:</label>
+                        <select [(ngModel)]="currentFilterOperator" class="form-control">
+                          <option value="between">Arasında</option>
+                          <option value="equals">Eşittir</option>
+                          <option value="notEquals">Eşit Değil</option>
+                          <option value="lt">Küçüktür</option>
+                          <option value="lte">Küçük Eşit</option>
+                          <option value="gt">Büyüktür</option>
+                          <option value="gte">Büyük Eşit</option>
+                          <option value="isEmpty">Boş</option>
+                          <option value="isNotEmpty">Boş Değil</option>
+                        </select>
+                      </div>
+                    }
 
-        <!-- Regular Column Filters -->
-        @for (column of getVisibleColumns(); track $index) {
-        <div class="grid-cell filter-cell" [style.width]="column.width || 'auto'"
-          [style.min-width]="column.minWidth || '50px'" [style.max-width]="column.maxWidth || 'none'">
-          @if (column.filterable !== false) {
-          <input type="text" class="filter-input" [placeholder]="'Search ' + column.header"
-            [value]="getFilterValue(column)" (input)="onFilter(column, $any($event.target).value)"
-            (click)="$event.stopPropagation()" />
-          }
+                    <!-- Operator Selection - DATE -->
+                    @if (currentFilterColumn?.filterType === 'date' || currentFilterColumn?.filterType === 'daterange') {
+                      <div class="form-group">
+                        <label>Operatör:</label>
+                        <select [(ngModel)]="currentFilterOperator" class="form-control">
+                          <option value="equals">Tarihte</option>
+                          <option value="notEquals">Tarihte Değil</option>
+                          <option value="lt">Önce</option>
+                          <option value="lte">Veya Önce</option>
+                          <option value="gt">Sonra</option>
+                          <option value="gte">Veya Sonra</option>
+                          <option value="between">Arasında</option>
+                          <option value="isEmpty">Boş</option>
+                          <option value="isNotEmpty">Boş Değil</option>
+                        </select>
+                      </div>
+                    }
 
-        </div>
-        }
+                    <!-- Value Input - TEXT -->
+                    @if ((!currentFilterColumn?.filterType || currentFilterColumn?.filterType === 'text') && currentFilterOperator
+                      !== 'isEmpty' && currentFilterOperator !== 'isNotEmpty') {
+                      <div class="form-group">
+                        <label>Değer:</label>
+                        <input type="text" [(ngModel)]="filterValue" class="form-control" placeholder="Metin girin..."
+                          (keyup.enter)="applyFilterModal()" />
+                        </div>
+                      }
 
-        <!-- Actions Column Filter (Empty) -->
-        @if (config?.showActions) {
-        <div class="grid-cell filter-cell actions-cell"
-          [style.width]="config?.actionsWidth || '150px'"
-          [style.min-width]="config?.actionsWidth || '150px'"
-          [style.max-width]="config?.actionsWidth || '150px'">
-        </div>
-        }
-      </div>
-    </div>
-    }
+                      <!-- Value Input - NUMBER -->
+                      @if ((currentFilterColumn?.filterType === 'number' || currentFilterColumn?.filterType === 'numberrange') && currentFilterOperator !== 'isEmpty' &&
+                        currentFilterOperator !== 'isNotEmpty' && currentFilterOperator !== 'between') {
+                        <div class="form-group">
+                          <label>Değer:</label>
+                          <input type="number" [(ngModel)]="filterValue" class="form-control" placeholder="Sayı girin..."
+                            (keyup.enter)="applyFilterModal()" />
+                          </div>
+                        }
 
+                        <!-- Value Input - NUMBER BETWEEN -->
+                        @if ((currentFilterColumn?.filterType === 'number' || currentFilterColumn?.filterType === 'numberrange') && currentFilterOperator === 'between') {
+                          <div class="form-group">
+                            <label>Minimum Değer:</label>
+                            <input type="number" [(ngModel)]="filterValue" class="form-control" placeholder="Min..."
+                              (keyup.enter)="applyFilterModal()" />
+                          </div>
+                          <div class="form-group">
+                            <label>Maksimum Değer:</label>
+                            <input type="number" [(ngModel)]="filterValue2" class="form-control" placeholder="Max..."
+                              (keyup.enter)="applyFilterModal()" />
+                          </div>
+                          <div class="between-info">
+                            <p>ℹ️ Belirtilen minimum ve maksimum değerler arasındaki kayıtlar filtrelenir.</p>
+                          </div>
+                        }
 
-    <!-- Body -->
-    <div class="grid-body" #gridBody>
-      @for (row of gridData; track $index) {
-      <div class="grid-row data-row" [class.selected]="isRowSelected(row)" [class.selectable]="config?.selectable"
-        [style.height]="config?.rowHeight">
+                        <!-- Value Input - DATE -->
+                        @if ((currentFilterColumn?.filterType === 'date' || currentFilterColumn?.filterType === 'daterange') && currentFilterOperator !== 'isEmpty' && currentFilterOperator
+                          !== 'isNotEmpty' && currentFilterOperator !== 'between') {
+                          <div class="form-group">
+                            <label>Değer:</label>
+                            <input type="date" [(ngModel)]="filterValue" class="form-control" (keyup.enter)="applyFilterModal()" />
+                          </div>
+                        }
 
-        <!-- Checkbox Column Cell -->
-        @if (config?.selectable && (config?.showCheckboxColumn !== false)) {
-        <div class="grid-cell data-cell checkbox-cell"
-          [style.width]="config?.checkboxColumnWidth || '60px'"
-          [style.min-width]="config?.checkboxColumnWidth || '60px'"
-          [style.max-width]="config?.checkboxColumnWidth || '60px'">
-          @if (checkboxTemplate) {
-            <ng-container *ngTemplateOutlet="checkboxTemplate; context: { $implicit: row, selected: isRowSelected(row) }"></ng-container>
-          } @else {
-            <input
-              type="checkbox"
-              class="grid-checkbox row-checkbox"
-              [checked]="isRowSelected(row)"
-              (change)="onRowSelect(row, $event)"
-              (click)="$event.stopPropagation()"
-            />
-          }
-        </div>
-        }
-
-        <!-- Regular Data Columns -->
-        @for (column of getVisibleColumns(); track $index) {
-        <div class="grid-cell data-cell" [style.width]="column.width || 'auto'"
-          [style.min-width]="column.minWidth || '50px'" [style.max-width]="column.maxWidth || 'none'"
-          [attr.data-type]="column.type">
-          <ng-container *ngIf="!column.cellTemplate">
-            {{ getCellValue(row, column) }}
-          </ng-container>
-          <ng-container *ngIf="column.cellTemplate">
-            <ng-container
-              *ngTemplateOutlet="column.cellTemplate; context: { $implicit: row, column: column }"></ng-container>
-          </ng-container>
-        </div>
-        }
-
-        <!-- Actions Column Cell -->
-        @if (config?.showActions) {
-        <div class="grid-cell data-cell actions-cell"
-          [style.width]="config?.actionsWidth || '150px'"
-          [style.min-width]="config?.actionsWidth || '150px'"
-          [style.max-width]="config?.actionsWidth || '150px'">
-          @if (actionsTemplate) {
-            <ng-container *ngTemplateOutlet="actionsTemplate; context: { $implicit: row }"></ng-container>
-          }
-        </div>
-        }
-      </div>
-      }
-
-
-      <!-- Empty State -->
-      @if (gridData.length === 0 && !loading) {
-      <div class="grid-empty">
-        <p>{{ config?.emptyMessage || 'No records found' }}</p>
-      </div>
-      }
-
-    </div>
-
-    <!-- Footer / Pagination -->
-    @if (config?.showFooter !== false) {
-    <div class="grid-footer">
-      <div class="pagination-info">
-        <span>
-          Showing {{ pagination.page * pagination.pageSize + 1 }} to
-          {{ Math.min((pagination.page + 1) * pagination.pageSize, pagination.totalRecords) }}
-          of {{ pagination.totalRecords }} entries
-        </span>
-      </div>
-
-      <div class="pagination-controls">
-        <!-- Page Size Selector -->
-        <div class="page-size-selector" *ngIf="config?.pageSizeOptions as pageSizeOptions">
-          <label>Rows per page:</label>
-          <select [value]="pagination.pageSize" (change)="onPageSizeChange(+$any($event.target).value)"
-            class="page-size-select">
-            @for (size of pageSizeOptions; track $index) {
-            <option [value]="size">
-              {{ size }}
-            </option>
-            }
-          </select>
-        </div>
-
-        <!-- Page Navigation -->
-        <div class="page-navigation">
-          <button class="page-btn" [disabled]="pagination.page === 0" (click)="onPageChange(0)" title="First page">
-            ⟪
-          </button>
-          <button class="page-btn" [disabled]="pagination.page === 0" (click)="onPageChange(pagination.page - 1)"
-            title="Previous page">
-            ‹
-          </button>
-
-          <ng-container *ngFor="let pageNum of getPageNumbers()">
-            @if (pageNum !== -1) {
-            <button class="page-btn" [class.active]="pageNum === pagination.page" (click)="onPageChange(pageNum)">
-              {{ pageNum + 1 }}
-            </button>
-            }
-            @if (pageNum === -1) {
-            <span class="page-ellipsis">...</span>
-            }
-          </ng-container>
-
-          <button class="page-btn" [disabled]="pagination.page >= pagination.totalPages - 1"
-            (click)="onPageChange(pagination.page + 1)" title="Next page">
-            ›
-          </button>
-          <button class="page-btn" [disabled]="pagination.page >= pagination.totalPages - 1"
-            (click)="onPageChange(pagination.totalPages - 1)" title="Last page">
-            ⟫
-          </button>
-        </div>
-      </div>
-
-      <!-- Custom Footer Template -->
-      @if (footerTemplate()) {
-      <div class="grid-custom-footer">
-        <ng-container
-          *ngTemplateOutlet="footerTemplate()!; context: { $implicit: gridData, total: pagination.totalRecords }"></ng-container>
-      </div>
-      }
-    </div>
-    }
-
-  </div>
-</div>
-
-<!-- Filter Modal -->
-@if (showFilterModal) {
-<div class="filter-modal-overlay" (click)="closeFilterModal()">
-  <div class="filter-modal-content" (click)="$event.stopPropagation()">
-    <div class="filter-modal-header">
-      <h3>Filter: {{ currentFilterColumn?.header }}</h3>
-      <button class="close-btn" (click)="closeFilterModal()">×</button>
-    </div>
-
-    <div class="filter-modal-body">
-      <div class="filter-form">
-        <!-- Operator Selection - STRING -->
-        @if (!currentFilterColumn?.filterType || currentFilterColumn?.filterType === 'text') {
-        <div class="form-group">
-          <label>Operator:</label>
-          <select [(ngModel)]="currentFilterOperator" class="form-control">
-            <option value="contains">Contains (İçerir)</option>
-            <option value="notContains">Not Contains (İçermez)</option>
-            <option value="equals">Equals (Eşittir)</option>
-            <option value="notEquals">Not Equals (Eşit Değil)</option>
-            <option value="startsWith">Starts With (İle Başlar)</option>
-            <option value="endsWith">Ends With (İle Biter)</option>
-            <option value="isEmpty">Is Empty (Boş)</option>
-            <option value="isNotEmpty">Is Not Empty (Boş Değil)</option>
-          </select>
-        </div>
-        }
-
-        <!-- Operator Selection - NUMBER -->
-        @if (currentFilterColumn?.filterType === 'number') {
-        <div class="form-group">
-          <label>Operator:</label>
-          <select [(ngModel)]="currentFilterOperator" class="form-control">
-            <option value="equals">Equals (Eşittir)</option>
-            <option value="notEquals">Not Equals (Eşit Değil)</option>
-            <option value="lt">Less Than (Küçüktür)</option>
-            <option value="lte">Less Than or Equal (Küçük Eşit)</option>
-            <option value="gt">Greater Than (Büyüktür)</option>
-            <option value="gte">Greater Than or Equal (Büyük Eşit)</option>
-            <option value="isEmpty">Is Empty (Boş)</option>
-            <option value="isNotEmpty">Is Not Empty (Boş Değil)</option>
-          </select>
-        </div>
-        }
-
-        <!-- Operator Selection - DATE -->
-        @if (currentFilterColumn?.filterType === 'date') {
-        <div class="form-group">
-          <label>Operator:</label>
-          <select [(ngModel)]="currentFilterOperator" class="form-control">
-            <option value="equals">On Date (Tarihte)</option>
-            <option value="notEquals">Not On Date (Tarihte Değil)</option>
-            <option value="lt">Before (Önce)</option>
-            <option value="lte">On or Before (Veya Önce)</option>
-            <option value="gt">After (Sonra)</option>
-            <option value="gte">On or After (Veya Sonra)</option>
-            <option value="isEmpty">Is Empty (Boş)</option>
-            <option value="isNotEmpty">Is Not Empty (Boş Değil)</option>
-          </select>
-        </div>
-        }
-
-        <!-- Value Input - TEXT -->
-        @if ((!currentFilterColumn?.filterType || currentFilterColumn?.filterType === 'text') && currentFilterOperator
-        !== 'isEmpty' && currentFilterOperator !== 'isNotEmpty') {
-        <div class="form-group">
-          <label>Value:</label>
-          <input type="text" [(ngModel)]="filterValue" class="form-control" placeholder="Enter text..."
-            (keyup.enter)="applyFilterModal()" />
-        </div>
-        }
-
-        <!-- Value Input - NUMBER -->
-        @if (currentFilterColumn?.filterType === 'number' && currentFilterOperator !== 'isEmpty' &&
-        currentFilterOperator !== 'isNotEmpty') {
-        <div class="form-group">
-          <label>Value:</label>
-          <input type="number" [(ngModel)]="filterValue" class="form-control" placeholder="Enter number..."
-            (keyup.enter)="applyFilterModal()" />
-        </div>
-        }
-
-        <!-- Value Input - DATE -->
-        @if (currentFilterColumn?.filterType === 'date' && currentFilterOperator !== 'isEmpty' && currentFilterOperator
-        !== 'isNotEmpty') {
-        <div class="form-group">
-          <label>Value:</label>
-          <input type="date" [(ngModel)]="filterValue" class="form-control" (keyup.enter)="applyFilterModal()" />
-        </div>
-        }
+                        <!-- Value Input - DATE BETWEEN -->
+                        @if ((currentFilterColumn?.filterType === 'date' || currentFilterColumn?.filterType === 'daterange') && currentFilterOperator === 'between') {
+                          <div class="form-group">
+                            <label>Başlangıç Tarihi:</label>
+                            <input type="date" [(ngModel)]="filterValue" class="form-control" (keyup.enter)="applyFilterModal()" />
+                          </div>
+                          <div class="form-group">
+                            <label>Bitiş Tarihi:</label>
+                            <input type="date" [(ngModel)]="filterValue2" class="form-control" (keyup.enter)="applyFilterModal()" />
+                          </div>
+                          <div class="between-info">
+                            <p>ℹ️ Belirtilen tarihler arasındaki kayıtlar filtrelenir.</p>
+                          </div>
+                        }
 
 
-        @if (currentFilterOperator === 'isEmpty' || currentFilterOperator === 'isNotEmpty') {
-        <div class="form-group">
-          <p
-            style="padding: 12px; background: var(--grid-bg-secondary); border-radius: var(--grid-radius-sm); color: var(--grid-text-secondary); font-size: 0.875rem;">
-            ℹ️ Bu operatör için değer girmeye gerek yok.
-          </p>
-        </div>
-        }
+                        <!-- Value Input - SELECT -->
+                        @if (currentFilterColumn?.filterType === 'select' && currentFilterOperator !== 'isEmpty' &&
+                          currentFilterOperator !== 'isNotEmpty') {
+                          <div class="form-group">
+                            <label>Değer:</label>
+                            <select [(ngModel)]="filterValue" class="form-control">
+                              <option value="">-- Seçiniz --</option>
+                              @for (opt of currentFilterColumn?.filterData || []; track opt.value) {
+                                <option [value]="opt.value">{{ opt.label }}</option>
+                              }
+                            </select>
+                          </div>
+                        }
 
-      </div>
-    </div>
+                        @if (currentFilterOperator === 'isEmpty' || currentFilterOperator === 'isNotEmpty') {
+                          <div class="form-group">
+                            <p
+                              style="padding: 12px; background: var(--grid-bg-secondary); border-radius: var(--grid-radius-sm); color: var(--grid-text-secondary); font-size: 0.875rem;">
+                              ℹ️ Bu operatör için değer girmeye gerek yok.
+                            </p>
+                          </div>
+                        }
 
-    <div class="filter-modal-footer">
-      <button class="btn-cancel" (click)="closeFilterModal()">Cancel</button>
-      <button class="btn-clear" (click)="clearFilterModal()">Clear Filter</button>
-      <button class="btn-apply" (click)="applyFilterModal()">Apply</button>
-    </div>
-  </div>
-</div>
-}
+                      </div>
+                    </div>
+
+                    <div class="filter-modal-footer">
+                      <button class="btn-cancel" (click)="closeFilterModal()">İptal</button>
+                      <button class="btn-clear" (click)="clearFilterModal()">Filtreyi Temizle</button>
+                      <button class="btn-apply" (click)="applyFilterModal()">Uygula</button>
+                    </div>
+                  </div>
+                </div>
+              }

@@ -1,7 +1,7 @@
 import { Component, input, signal, linkedSignal, contentChild, TemplateRef } from '@angular/core';
 
 export type TextAlignType = 'left' | 'center' | 'right';
-export type FilterType = 'text' | 'date' | 'number' | 'boolean' | 'select';
+export type FilterType = 'text' | 'date' | 'daterange' | 'number' | 'numberrange' | 'boolean' | 'select';
 export type CurrencyFormatType = 'c' | 'n';
 
 @Component({
